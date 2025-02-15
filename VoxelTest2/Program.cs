@@ -20,13 +20,13 @@ namespace VoxelTest2
     public class Program : GameWindow
     {
         public Shader _shader;
-        //int VertexBufferObject;
-        //int VertexArrayObject;
-
         private int _vertexBufferObject;
         private int _vertexArrayObject;
         private int _elementBufferObject;
+        private int _instanceBufferObject;
         private int _shaderProgram;
+
+        private Matrix4[] instanceMatrices;
 
         private float[] vertices = {
             // Front face
@@ -49,6 +49,7 @@ namespace VoxelTest2
             // Connecting edges
             0, 4, 1, 5, 2, 6, 3, 7
         };
+
         public Program(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { Size = (width, height), Title = title }) { }
 
         public static void Main()
@@ -86,13 +87,40 @@ namespace VoxelTest2
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, _elementBufferObject);
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
 
+            int instanceCount = 16;
+            instanceMatrices = new Matrix4[instanceCount];
+            for (int i = 0; i < instanceCount; i++)
+            {
+                float x = (i % 10) * 2.0f;
+                float y = ((i / 10) % 10) * 2.0f;
+                float z = (i / 100) * 2.0f;
+                instanceMatrices[i] = Matrix4.CreateTranslation(x, y, z);
+            }
+
+            int matrix4SizeInBytes = Marshal.SizeOf<Matrix4>();
+
+            _instanceBufferObject = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _instanceBufferObject);
+            GL.BufferData(BufferTarget.ArrayBuffer, instanceMatrices.Length * matrix4SizeInBytes, instanceMatrices, BufferUsageHint.StaticDraw);
+
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(0);
+            for (int i = 0; i < 4; i++)
+            {
+                GL.VertexAttribPointer(1 + i, 4, VertexAttribPointerType.Float, false, matrix4SizeInBytes, i * 16);
+                GL.EnableVertexAttribArray(1 + i);
+                GL.VertexAttribDivisor(1 + i, 1);
+            }
+
             // Create shaders
             string vertexShaderSource = @"#version 330 core
         layout(location = 0) in vec3 aPosition;
-        uniform mat4 mvp;
+        layout(location = 1) in mat4 instanceMatrix;
+        uniform mat4 view;
+        uniform mat4 projection;
         void main()
         {
-            gl_Position = mvp * vec4(aPosition, 1.0);
+            gl_Position = projection * view * instanceMatrix * vec4(aPosition, 1.0);
         }";
 
             string fragmentShaderSource = @"#version 330 core
@@ -124,31 +152,28 @@ namespace VoxelTest2
             // Set vertex attributes
             GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
             GL.EnableVertexAttribArray(0);
-
         }
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
             base.OnRenderFrame(e);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            float time = (float)Environment.TickCount / 1000;
-            Matrix4 model = Matrix4.CreateRotationX(0) * Matrix4.CreateRotationY(0);
-            Matrix4 view = Matrix4.LookAt(new Vector3(0, 0, 5), Vector3.Zero, Vector3.UnitY);
+
+            Matrix4 view = Matrix4.LookAt(new Vector3(0, 0, 20), Vector3.Zero, Vector3.UnitY);
             Matrix4 projection = Matrix4.CreatePerspectiveFieldOfView(
                 MathHelper.DegreesToRadians(45),
                 (float)Size.X / Size.Y,
                 0.1f,
                 100.0f);
-            Matrix4 mvp = model * view * projection;
 
-            // Set shader parameters
             GL.UseProgram(_shaderProgram);
-            int mvpLocation = GL.GetUniformLocation(_shaderProgram, "mvp");
-            GL.UniformMatrix4(mvpLocation, false, ref mvp);
+            int viewLocation = GL.GetUniformLocation(_shaderProgram, "view");
+            GL.UniformMatrix4(viewLocation, false, ref view);
+            int projectionLocation = GL.GetUniformLocation(_shaderProgram, "projection");
+            GL.UniformMatrix4(projectionLocation, false, ref projection);
 
-            // Draw cube
             GL.BindVertexArray(_vertexArrayObject);
-            GL.DrawElements(PrimitiveType.Lines, indices.Length, DrawElementsType.UnsignedInt, 0);
+            GL.DrawElementsInstanced(PrimitiveType.Lines, indices.Length, DrawElementsType.UnsignedInt, IntPtr.Zero, instanceMatrices.Length);
 
             SwapBuffers();
         }
