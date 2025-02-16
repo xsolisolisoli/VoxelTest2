@@ -8,10 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<None Update="shader.vert">
+	<None Update="Shading\Shaders\shader.vert">
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</None>
-	<None Update="shader.frag">
+	<None Update="Shading\Shaders\shader.frag">
 		<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	</None>	
     <PackageReference Include="OpenTK" Version="4.9.3" />
