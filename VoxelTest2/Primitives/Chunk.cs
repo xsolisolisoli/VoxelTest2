@@ -10,8 +10,8 @@ namespace VoxelTest2.Primitives
 {
     public class Chunk
     {
-        const int CHUNK_SIZE = 16;
-        const int BLOCK_RENDER_SIZE = 2;
+        const int CHUNK_SIZE = 4;
+        const int BLOCK_RENDER_SIZE = 1;
         private Block[,,] _data; // Fixed the multidimensional array declaration
         private int vertexArrayObject;
         private int vertexBufferObject;
@@ -95,7 +95,7 @@ namespace VoxelTest2.Primitives
                     vertices.Add(new Vertex(
                         cubeVertices[i],
                         face.Normal,
-                        new Color4(1.0f, 1.0f, 1.0f, 1.0f) // White color
+                        new Color4(i, 1.0f, i, 1.0f) // White color
                     ));
                 }
 

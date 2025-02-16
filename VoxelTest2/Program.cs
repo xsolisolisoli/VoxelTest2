@@ -14,6 +14,7 @@ using OpenTK.Windowing.Desktop;
 using VoxelTest2.Primitives;
 using VoxelTest2.Shading;
 using static VoxelTest2.Primitives.Geometry;
+using VoxelTest2.Camera;
 using Vector3 = OpenTK.Mathematics.Vector3;
 
 namespace VoxelTest2
@@ -21,6 +22,7 @@ namespace VoxelTest2
     public class Program : GameWindow
     {
         private Chunk chunk;
+        private Camera.Camera _camera;
         public Shader _shader;
         private int _vertexBufferObject;
         private int _vertexArrayObject;
@@ -54,7 +56,7 @@ namespace VoxelTest2
         protected override void OnLoad()
         {
             base.OnLoad();
-
+            _camera = new Camera.Camera();
             // Initialize OpenGL settings
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.CullFace);
@@ -82,14 +84,13 @@ namespace VoxelTest2
         protected override void OnRenderFrame(FrameEventArgs args)
         {
             base.OnRenderFrame(args);
-
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             _shader.Use();
 
             // Set up model-view-projection matrix
             var model = Matrix4.Identity; // Adjust this if you want transformations
-            var mvp = model * view * projection;
+            var mvp = model * _camera._camView * projection;
 
             _shader.SetMatrix4("mvp", mvp);
 
@@ -109,6 +110,7 @@ namespace VoxelTest2
         protected override void OnUpdateFrame(FrameEventArgs args)
         {
             base.OnUpdateFrame(args);
+            _camera.ProcessInput(args, KeyboardState);
         }
         public   void UploadToGPU(List<Vertex> vertices, List<uint> indices)
         {
