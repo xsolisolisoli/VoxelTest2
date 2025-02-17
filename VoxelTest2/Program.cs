@@ -93,10 +93,12 @@ namespace VoxelTest2
             var model = Matrix4.Identity; // Adjust this if you want transformations
             var mvp = model * _camera.GetViewMatrix() * _camera.GetProjectionMatrix();
 
-            _shader.SetMatrix4("mvp", mvp);
-
-
             //_shader.SetMatrix4("mvp", mvp);
+            _shader.SetMatrix4("model", model);
+            _shader.SetMatrix4("view", _camera.GetViewMatrix());
+            _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
+
+
             chunk.Render();
 
             SwapBuffers();

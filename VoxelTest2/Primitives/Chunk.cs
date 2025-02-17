@@ -12,7 +12,7 @@ namespace VoxelTest2.Primitives
     public class Chunk
     {
         const int CHUNK_SIZE = 16;
-        const float BLOCK_RENDER_SIZE = 1f;
+        const float BLOCK_RENDER_SIZE = 0.5f;
         private Block[,,] _data; // Fixed the multidimensional array declaration
         public int vertexArrayObject;
         private int vertexBufferObject;

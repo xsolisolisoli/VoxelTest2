@@ -40,8 +40,8 @@ namespace VoxelTest2.Shading {
 
         public void SetMatrix4(string name, Matrix4 matrix)
         {
-            var location = GL.GetUniformLocation(handle, name);
-            GL.UniformMatrix4(location, true, ref matrix);
+            int location = GL.GetUniformLocation(handle, name);
+            GL.UniformMatrix4(location, false, ref matrix);
         }
 
         private static void CompileShader(int shader)
