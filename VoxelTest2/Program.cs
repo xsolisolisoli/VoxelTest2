@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Numerics;
 using System.Runtime.InteropServices;
 using OpenTK;
 using OpenTK.Graphics;
@@ -16,6 +15,7 @@ using VoxelTest2.Shading;
 using static VoxelTest2.Primitives.Geometry;
 using VoxelTest2.Camera;
 using Vector3 = OpenTK.Mathematics.Vector3;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace VoxelTest2
 {
@@ -32,7 +32,8 @@ namespace VoxelTest2
         private int _shaderProgram;
         private Matrix4 view;
         private Matrix4 projection;
-
+        private Vector2 _lastPos;
+        private bool _firstMove = true;
         private Matrix4[] instanceMatrices;
 
         public Program(int width, int height, string title) : base(GameWindowSettings.Default, new NativeWindowSettings() { Size = (width, height), Title = title }) { }
@@ -56,7 +57,7 @@ namespace VoxelTest2
         protected override void OnLoad()
         {
             base.OnLoad();
-            _camera = new Camera.Camera();
+            _camera = new Camera.Camera(Vector3.UnitZ * 3, Size.X / (float)Size.Y);
             // Initialize OpenGL settings
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.CullFace);
@@ -90,7 +91,7 @@ namespace VoxelTest2
 
             // Set up model-view-projection matrix
             var model = Matrix4.Identity; // Adjust this if you want transformations
-            var mvp = model * _camera._camView * projection;
+            var mvp = model * _camera.GetViewMatrix() * _camera.GetProjectionMatrix();
 
             _shader.SetMatrix4("mvp", mvp);
 
@@ -101,16 +102,77 @@ namespace VoxelTest2
             SwapBuffers();
         }
 
+
         protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
         {
             base.OnFramebufferResize(e);
             GL.Viewport(0, 0, e.Width, e.Height);
         }
 
-        protected override void OnUpdateFrame(FrameEventArgs args)
+        protected override void OnUpdateFrame(FrameEventArgs e)
         {
-            base.OnUpdateFrame(args);
-            _camera.ProcessInput(args, KeyboardState);
+            base.OnUpdateFrame(e);
+
+            if (!IsFocused) // Check to see if the window is focused
+            {
+                return;
+            }
+
+            var input = KeyboardState;
+
+            if (input.IsKeyDown(Keys.Escape))
+            {
+                Close();
+            }
+
+            const float cameraSpeed = 1.5f;
+            const float sensitivity = 0.2f;
+
+            if (input.IsKeyDown(Keys.W))
+            {
+                _camera.Position += _camera.Front * cameraSpeed * (float)e.Time; // Forward
+            }
+
+            if (input.IsKeyDown(Keys.S))
+            {
+                _camera.Position -= _camera.Front * cameraSpeed * (float)e.Time; // Backwards
+            }
+            if (input.IsKeyDown(Keys.A))
+            {
+                _camera.Position -= _camera.Right * cameraSpeed * (float)e.Time; // Left
+            }
+            if (input.IsKeyDown(Keys.D))
+            {
+                _camera.Position += _camera.Right * cameraSpeed * (float)e.Time; // Right
+            }
+            if (input.IsKeyDown(Keys.Space))
+            {
+                _camera.Position += _camera.Up * cameraSpeed * (float)e.Time; // Up
+            }
+            if (input.IsKeyDown(Keys.LeftShift))
+            {
+                _camera.Position -= _camera.Up * cameraSpeed * (float)e.Time; // Down
+            }
+
+            // Get the mouse state
+            var mouse = MouseState;
+
+            if (_firstMove) // This bool variable is initially set to true.
+            {
+                _lastPos = new OpenTK.Mathematics.Vector2(mouse.X, mouse.Y);
+                _firstMove = false;
+            }
+            else
+            {
+                // Calculate the offset of the mouse position
+                var deltaX = mouse.X - _lastPos.X;
+                var deltaY = mouse.Y - _lastPos.Y;
+                _lastPos = new Vector2(mouse.X, mouse.Y);
+
+                // Apply the camera pitch and yaw (we clamp the pitch in the camera class)
+                _camera.Yaw += deltaX * sensitivity;
+                _camera.Pitch -= deltaY * sensitivity; // Reversed since y-coordinates range from bottom to top
+            }
         }
         public   void UploadToGPU(List<Vertex> vertices, List<uint> indices)
         {

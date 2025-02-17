@@ -5,21 +5,28 @@ using System.Text;
 using System.Threading.Tasks;
 using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL;
+using VoxelTest2.Shading;
 
 namespace VoxelTest2.Primitives
 {
     public class Chunk
     {
-        const int CHUNK_SIZE = 4;
-        const int BLOCK_RENDER_SIZE = 1;
+        const int CHUNK_SIZE = 16;
+        const float BLOCK_RENDER_SIZE = 1f;
         private Block[,,] _data; // Fixed the multidimensional array declaration
-        private int vertexArrayObject;
+        public int vertexArrayObject;
         private int vertexBufferObject;
         private int elementBufferObject;
-        private int elementCount;
+        public int elementCount;
+        private Shader _shader;
 
         public Chunk()
         {
+            GenerateRandomChunk();
+        }        
+        public Chunk(Shader shader)
+        {
+            _shader = shader;
             GenerateRandomChunk();
         }
         public void GenerateRandomChunk()
@@ -95,7 +102,7 @@ namespace VoxelTest2.Primitives
                     vertices.Add(new Vertex(
                         cubeVertices[i],
                         face.Normal,
-                        new Color4(i, 1.0f, i, 1.0f) // White color
+                        new Color4(0.0f, 1.0f, i, 1.0f) // White color
                     ));
                 }
 
@@ -113,6 +120,10 @@ namespace VoxelTest2.Primitives
             GL.BindVertexArray(vertexArrayObject);
             GL.DrawElements(PrimitiveType.Triangles, elementCount,
                             DrawElementsType.UnsignedInt, 0);
+        }
+        public void BindVertexArray()
+        {
+            GL.BindVertexArray(vertexArrayObject);
         }
         public void Dispose()
         {

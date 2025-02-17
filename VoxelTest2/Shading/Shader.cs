@@ -9,24 +9,26 @@ namespace VoxelTest2.Shading {
 
         public Shader(string vertPath, string fragPath)
         {
-            // Load and compile shaders
+            // Compile vertex shader
             var vertexShader = GL.CreateShader(ShaderType.VertexShader);
             GL.ShaderSource(vertexShader, File.ReadAllText(vertPath));
-            CompileShader(vertexShader);
+            GL.CompileShader(vertexShader);
+            CheckShaderCompileErrors(vertexShader, "VERTEX");
 
+            // Compile fragment shader
             var fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
             GL.ShaderSource(fragmentShader, File.ReadAllText(fragPath));
-            CompileShader(fragmentShader);
+            GL.CompileShader(fragmentShader);
+            CheckShaderCompileErrors(fragmentShader, "FRAGMENT");
 
-            // Create program
+            // Link shaders into a program
             handle = GL.CreateProgram();
             GL.AttachShader(handle, vertexShader);
             GL.AttachShader(handle, fragmentShader);
-            LinkProgram(handle);
+            GL.LinkProgram(handle);
+            CheckProgramLinkErrors(handle);
 
-            // Cleanup
-            GL.DetachShader(handle, vertexShader);
-            GL.DetachShader(handle, fragmentShader);
+            // Clean up shaders as they are no longer needed
             GL.DeleteShader(vertexShader);
             GL.DeleteShader(fragmentShader);
         }
@@ -63,5 +65,25 @@ namespace VoxelTest2.Shading {
             GL.DeleteProgram(handle);
             GC.SuppressFinalize(this);
         }
+        private void CheckShaderCompileErrors(int shader, string type)
+        {
+            GL.GetShader(shader, ShaderParameter.CompileStatus, out int success);
+            if (success == 0)
+            {
+                string infoLog = GL.GetShaderInfoLog(shader);
+                Console.WriteLine($"ERROR::SHADER_COMPILATION_ERROR of type: {type}\n{infoLog}\n");
+            }
+        }
+
+        private void CheckProgramLinkErrors(int program)
+        {
+            GL.GetProgram(program, GetProgramParameterName.LinkStatus, out int success);
+            if (success == 0)
+            {
+                string infoLog = GL.GetProgramInfoLog(program);
+                Console.WriteLine($"ERROR::PROGRAM_LINKING_ERROR\n{infoLog}\n");
+            }
+        }
     }
+
 }
