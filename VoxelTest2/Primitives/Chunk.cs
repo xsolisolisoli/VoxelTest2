@@ -11,7 +11,7 @@ namespace VoxelTest2.Primitives
 {
     public class Chunk
     {
-        const int CHUNK_SIZE = 16;
+        const int CHUNK_SIZE = 4;
         const float BLOCK_RENDER_SIZE = 0.5f;
         private Block[,,] _data; // Fixed the multidimensional array declaration
         public int vertexArrayObject;
@@ -168,6 +168,75 @@ namespace VoxelTest2.Primitives
                                  Vertex.SizeInBytes, 6 * sizeof(float));
 
             GL.BindVertexArray(0);
+        }
+        public bool RayIntersectsBlock(Vector3 rayOrigin, Vector3 rayDirection, out Vector3 hitPosition, out Block hitBlock)
+        {
+            hitPosition = Vector3.Zero;
+            hitBlock = null;
+
+            for (int x = 0; x < CHUNK_SIZE; x++)
+            {
+                for (int y = 0; y < CHUNK_SIZE; y++)
+                {
+                    for (int z = 0; z < CHUNK_SIZE; z++)
+                    {
+                        if (!_data[x, y, z]?.isActive ?? true) continue;
+
+                        Vector3 blockPos = new Vector3(x, y, z);
+                        if (RayIntersectsAABB(rayOrigin, rayDirection, blockPos, BLOCK_RENDER_SIZE))
+                        {
+                            hitPosition = blockPos;
+                            hitBlock = _data[x, y, z];
+                            _data[x, y, z] = new Block(0);
+                            CreateMesh();
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private bool RayIntersectsAABB(Vector3 rayOrigin, Vector3 rayDirection, Vector3 aabbMin, float aabbSize)
+        {
+            Vector3 aabbMax = aabbMin + new Vector3(aabbSize);
+
+            float tMin = (aabbMin.X - rayOrigin.X) / rayDirection.X;
+            float tMax = (aabbMax.X - rayOrigin.X) / rayDirection.X;
+
+            if (tMin > tMax) Swap(ref tMin, ref tMax);
+
+            float tyMin = (aabbMin.Y - rayOrigin.Y) / rayDirection.Y;
+            float tyMax = (aabbMax.Y - rayOrigin.Y) / rayDirection.Y;
+
+            if (tyMin > tyMax) Swap(ref tyMin, ref tyMax);
+
+            if ((tMin > tyMax) || (tyMin > tMax))
+                return false;
+
+            if (tyMin > tMin)
+                tMin = tyMin;
+
+            if (tyMax < tMax)
+                tMax = tyMax;
+
+            float tzMin = (aabbMin.Z - rayOrigin.Z) / rayDirection.Z;
+            float tzMax = (aabbMax.Z - rayOrigin.Z) / rayDirection.Z;
+
+            if (tzMin > tzMax) Swap(ref tzMin, ref tzMax);
+
+            if ((tMin > tzMax) || (tzMin > tMax))
+                return false;
+
+            return true;
+        }
+
+        private void Swap(ref float a, ref float b)
+        {
+            float temp = a;
+            a = b;
+            b = temp;
         }
 
         public void CreateChunk()

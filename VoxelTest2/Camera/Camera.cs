@@ -46,6 +46,31 @@ namespace VoxelTest2.Camera
 
         public Vector3 Right => _right;
 
+        public Vector3 ScreenToWorldRay(Vector2 screenPos, Vector2 screenSize)
+        {
+            // Convert screen position to normalized device coordinates (NDC)
+            Vector2 ndc = new Vector2(
+                (2.0f * screenPos.X) / screenSize.X - 1.0f,
+                1.0f - (2.0f * screenPos.Y) / screenSize.Y
+            );
+
+            // Create a 4D point in clip space
+            Vector4 clipCoords = new Vector4(ndc.X, ndc.Y, -1.0f, 1.0f);
+
+            // Transform clip space coordinates to view space
+            Matrix4 invProjection = Matrix4.Invert(GetProjectionMatrix());
+            Vector4 viewCoords = Vector4.TransformRow(clipCoords, invProjection);
+            viewCoords.Z = -1.0f;
+            viewCoords.W = 0.0f;
+
+            // Transform view space coordinates to world space
+            Matrix4 invView = Matrix4.Invert(GetViewMatrix());
+            Vector3 worldRay = Vector4.TransformRow(viewCoords, invView).Xyz;
+            worldRay.Normalize();
+
+            return worldRay;
+        }
+
         // We convert from degrees to radians as soon as the property is set to improve performance.
         public float Pitch
         {

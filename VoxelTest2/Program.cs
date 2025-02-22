@@ -16,6 +16,7 @@ using static VoxelTest2.Primitives.Geometry;
 using VoxelTest2.Camera;
 using Vector3 = OpenTK.Mathematics.Vector3;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+using OpenTK.Windowing.Common.Input;
 
 namespace VoxelTest2
 {
@@ -56,6 +57,7 @@ namespace VoxelTest2
 
         protected override void OnLoad()
         {
+
             base.OnLoad();
             _camera = new Camera.Camera(Vector3.UnitZ * 3, Size.X / (float)Size.Y);
             // Initialize OpenGL settings
@@ -63,7 +65,7 @@ namespace VoxelTest2
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(CullFaceMode.Back);
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-
+            CursorState = CursorState.Grabbed;
             // Create and initialize chunk
             chunk = new Chunk();
             chunk.CreateMesh();
@@ -117,6 +119,7 @@ namespace VoxelTest2
 
             if (!IsFocused) // Check to see if the window is focused
             {
+
                 return;
             }
 
@@ -176,7 +179,23 @@ namespace VoxelTest2
                 _camera.Pitch -= deltaY * sensitivity; // Reversed since y-coordinates range from bottom to top
             }
         }
-        public   void UploadToGPU(List<Vertex> vertices, List<uint> indices)
+        protected override void OnMouseDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseDown(e);
+
+            if (e.Button == MouseButton.Left)
+            {
+                Vector2 screenCenter = new Vector2(Size.X / 2, Size.Y / 2);
+                Vector3 rayDirection = _camera.ScreenToWorldRay(screenCenter, new Vector2(Size.X, Size.Y));
+                Vector3 rayOrigin = _camera.Position;
+
+                if (chunk.RayIntersectsBlock(rayOrigin, rayDirection, out Vector3 hitPosition, out Block hitBlock))
+                {
+                    Console.WriteLine($"Hit block at {hitPosition} with ID: {hitBlock.blockType}");
+                }
+            }
+        }
+        public void UploadToGPU(List<Vertex> vertices, List<uint> indices)
         {
             // Delete previous buffers if they exist
             Dispose();
