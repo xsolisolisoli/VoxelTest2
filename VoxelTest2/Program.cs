@@ -41,7 +41,8 @@ namespace VoxelTest2
 
         public static void Main()
         {
-            runGame(new Program(800, 600, "VoxelTest2"));
+            Env.EnvSetup();
+            runGame(new Program(800, 600, Environment.GetEnvironmentVariable("TITLE")));
         }
 
         public static void runGame(Program game)
