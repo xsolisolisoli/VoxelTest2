@@ -44,7 +44,22 @@ namespace VoxelTest2.Primitives
                 }
             }
         }
+        private void HighlightBlock(Vector3 position)
+        {
+            int x = (int)position.X;
+            int y = (int)position.Y;
+            int z = (int)position.Z;
 
+            // Ensure the position is within the chunk bounds
+            if (x >= 0 && x < Chunk.CHUNK_SIZE && y >= 0 && y < Chunk.CHUNK_SIZE && z >= 0 && z < Chunk.CHUNK_SIZE)
+            {
+                // Highlight the block
+                _data[x, y, z].isHighlighted = true;
+
+                // Update the chunk mesh to reflect the change
+                this.CreateMesh();
+            }
+        }
 
         public void CreateMesh()
         {
@@ -60,39 +75,40 @@ namespace VoxelTest2.Primitives
                     {
                         if (!_data[x, y, z]?.isActive ?? true) continue;
 
-                        AddCubeVertices(x, y, z, vertices, indices, ref indexOffset);
+                        AddCubeVertices(x, y, z, vertices, indices, ref indexOffset, _data[x,y,z].isHighlighted);
                     }
                 }
             }
             UploadToGPU(vertices, indices);
         }
 
-        private void AddCubeVertices(int x, int y, int z, List<Vertex> vertices, List<uint> indices, ref uint indexOffset)
+        private void AddCubeVertices(int x, int y, int z, List<Vertex> vertices, List<uint> indices, ref uint indexOffset, bool isHighlighted)
         {
             float size = BLOCK_RENDER_SIZE;
             Vector3 center = new Vector3(x, y, z);
+            Color4 color = isHighlighted ? new Color4(1.0f, 0.0f, 0.0f, 1.0f) : new Color4(0.0f, 1.0f, 0.0f, 1.0f); // Red if highlighted, green otherwise
 
             // Define cube vertices relative to block position
             Vector3[] cubeVertices = {
-            center + new Vector3(-size, -size,  size), // Front-left-bottom
-            center + new Vector3( size, -size,  size), // Front-right-bottom
-            center + new Vector3( size,  size,  size), // Front-right-top
-            center + new Vector3(-size,  size,  size), // Front-left-top
-            center + new Vector3( size, -size, -size), // Back-right-bottom
-            center + new Vector3(-size, -size, -size), // Back-left-bottom
-            center + new Vector3(-size,  size, -size), // Back-left-top
-            center + new Vector3( size,  size, -size)  // Back-right-top
-        };
+        center + new Vector3(-size, -size,  size), // Front-left-bottom
+        center + new Vector3( size, -size,  size), // Front-right-bottom
+        center + new Vector3( size,  size,  size), // Front-right-top
+        center + new Vector3(-size,  size,  size), // Front-left-top
+        center + new Vector3( size, -size, -size), // Back-right-bottom
+        center + new Vector3(-size, -size, -size), // Back-left-bottom
+        center + new Vector3(-size,  size, -size), // Back-left-top
+        center + new Vector3( size,  size, -size)  // Back-right-top
+    };
 
             // Define faces with normals and vertex indices
             var faces = new[] {
-            new { Normal = Vector3.UnitZ,  Vertices = new[] { 0, 1, 2, 3 } },  // Front
-            new { Normal = -Vector3.UnitZ, Vertices = new[] { 4, 5, 6, 7 } },  // Back
-            new { Normal = Vector3.UnitX,  Vertices = new[] { 1, 4, 7, 2 } },  // Right
-            new { Normal = -Vector3.UnitX, Vertices = new[] { 5, 0, 3, 6 } },  // Left
-            new { Normal = Vector3.UnitY,  Vertices = new[] { 3, 2, 7, 6 } },  // Top
-            new { Normal = -Vector3.UnitY, Vertices = new[] { 5, 4, 1, 0 } },  // Bottom
-        };
+        new { Normal = Vector3.UnitZ,  Vertices = new[] { 0, 1, 2, 3 } },  // Front
+        new { Normal = -Vector3.UnitZ, Vertices = new[] { 4, 5, 6, 7 } },  // Back
+        new { Normal = Vector3.UnitX,  Vertices = new[] { 1, 4, 7, 2 } },  // Right
+        new { Normal = -Vector3.UnitX, Vertices = new[] { 5, 0, 3, 6 } },  // Left
+        new { Normal = Vector3.UnitY,  Vertices = new[] { 3, 2, 7, 6 } },  // Top
+        new { Normal = -Vector3.UnitY, Vertices = new[] { 5, 4, 1, 0 } },  // Bottom
+    };
 
             foreach (var face in faces)
             {
@@ -102,15 +118,15 @@ namespace VoxelTest2.Primitives
                     vertices.Add(new Vertex(
                         cubeVertices[i],
                         face.Normal,
-                        new Color4(0.0f, 1.0f, i, 1.0f) // White color
+                        color // Use the color based on whether the block is highlighted
                     ));
                 }
 
                 // Add indices for two triangles
                 indices.AddRange(new[] {
-                indexOffset, indexOffset + 1, indexOffset + 2,
-                indexOffset, indexOffset + 2, indexOffset + 3
-            });
+            indexOffset, indexOffset + 1, indexOffset + 2,
+            indexOffset, indexOffset + 2, indexOffset + 3
+        });
 
                 indexOffset += 4;
             }

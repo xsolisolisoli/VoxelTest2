@@ -184,17 +184,46 @@ namespace VoxelTest2
         {
             base.OnMouseDown(e);
 
+            // Check if the left mouse button was pressed
             if (e.Button == MouseButton.Left)
             {
-                Vector2 screenCenter = new Vector2(Size.X / 2, Size.Y / 2);
-                Vector3 rayDirection = _camera.ScreenToWorldRay(screenCenter, new Vector2(Size.X, Size.Y));
-                Vector3 rayOrigin = _camera.Position;
-
-                if (chunk.RayIntersectsBlock(rayOrigin, rayDirection, out Vector3 hitPosition, out Block hitBlock))
+                try
                 {
-                    Console.WriteLine($"Hit block at {hitPosition} with ID: {hitBlock.blockType}");
+                    // Calculate the center of the screen
+                    Vector2 screenCenter = new Vector2(Size.X / 2, Size.Y / 2);
+
+                    // Get the ray direction from the camera through the center of the screen
+                    Vector3 rayDirection = _camera.ScreenToWorldRay(screenCenter, new Vector2(Size.X, Size.Y));
+                    Vector3 rayOrigin = _camera.Position;
+
+                    // Check if the ray intersects with any blocks in the chunk
+                    if (chunk.RayIntersectsBlock(rayOrigin, rayDirection, out Vector3 hitPosition, out Block hitBlock))
+                    {
+                        // Output the block information to the console
+                        Console.WriteLine($"Hit block at {hitPosition} with ID: {hitBlock.blockType}");
+
+                        // Optional: Highlight the selected block or perform additional actions
+                        HighlightBlock(hitPosition);
+                    }
+                    else
+                    {
+                        Console.WriteLine("No block hit.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Handle any exceptions that occur
+                    Console.WriteLine($"An error occurred: {ex.Message}");
                 }
             }
+        }
+
+        // Optional: Function to highlight the selected block
+        private void HighlightBlock(Vector3 position)
+        {
+            // Implement block highlighting logic here
+            // For example, change the block color or add a visual indicator
+            Console.WriteLine($"Highlighting block at {position}");
         }
         public void UploadToGPU(List<Vertex> vertices, List<uint> indices)
         {
