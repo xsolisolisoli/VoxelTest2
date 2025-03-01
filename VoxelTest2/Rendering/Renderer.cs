@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using static VoxelTest2.Entity.ECS;
 using VoxelTest2.Entity;
+using OpenTK.Graphics;
+using OpenTK.Graphics.OpenGL;
 
 namespace VoxelTest2.Rendering
 {
