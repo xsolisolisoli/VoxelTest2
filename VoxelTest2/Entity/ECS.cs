@@ -33,6 +33,7 @@ namespace VoxelTest2.Entity
             public int VertexArrayObject { get; set; }
             public int VertexBufferObject { get; set; }
             public int ElementBufferObject { get; set; }
+            public int ElementCount { get; set; }
         }
 
     }
