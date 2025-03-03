@@ -12,6 +12,10 @@ using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using VoxelTest2.Primitives;
 using VoxelTest2.Shading;
+using VoxelTest2.Entity;
+using VoxelTest2.Entity.Components;
+using VoxelTest2.Rendering;
+using VoxelTest2.Entity.Systems;
 using static VoxelTest2.Primitives.Geometry;
 using VoxelTest2.Camera;
 using Vector3 = OpenTK.Mathematics.Vector3;
@@ -22,7 +26,10 @@ namespace VoxelTest2
 {
     public class Program : GameWindow
     {
-        private Chunk chunk;
+        private ComponentManager _componentManager;
+        private Renderer _renderer;
+        private Movement _movementSystem;
+        private Chunk _chunk;
         private Camera.Camera _camera;
         public Shader _shader;
         private int _vertexBufferObject;
@@ -58,8 +65,12 @@ namespace VoxelTest2
 
         protected override void OnLoad()
         {
-
             base.OnLoad();
+            _componentManager = new ComponentManager();
+            _renderer = new Renderer(_componentManager);
+            _movementSystem = new Movement(_componentManager);
+            _chunk = new Chunk(_componentManager);
+
             _camera = new Camera.Camera(Vector3.UnitZ * 3, Size.X / (float)Size.Y);
             // Initialize OpenGL settings
             GL.Enable(EnableCap.DepthTest);
@@ -67,11 +78,7 @@ namespace VoxelTest2
             GL.CullFace(CullFaceMode.Back);
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
             CursorState = CursorState.Grabbed;
-            // Create and initialize chunk
-            chunk = new Chunk();
-            chunk.CreateMesh();
 
-            initializeShaders();
             // Set up camera matrices
             view = Matrix4.LookAt(
                 new Vector3(0, 0, 3), // Camera position
@@ -85,33 +92,15 @@ namespace VoxelTest2
                 0.1f,
                 100.0f);
         }
+
         protected override void OnRenderFrame(FrameEventArgs args)
         {
             base.OnRenderFrame(args);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            _shader.Use();
-
-            // Set up model-view-projection matrix
-            var model = Matrix4.Identity; // Adjust this if you want transformations
-            var mvp = model * _camera.GetViewMatrix() * _camera.GetProjectionMatrix();
-
-            //_shader.SetMatrix4("mvp", mvp);
-            _shader.SetMatrix4("model", model);
-            _shader.SetMatrix4("view", _camera.GetViewMatrix());
-            _shader.SetMatrix4("projection", _camera.GetProjectionMatrix());
-
-
-            chunk.Render();
+            _renderer.Render();
 
             SwapBuffers();
-        }
-
-
-        protected override void OnFramebufferResize(FramebufferResizeEventArgs e)
-        {
-            base.OnFramebufferResize(e);
-            GL.Viewport(0, 0, e.Width, e.Height);
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
@@ -120,7 +109,6 @@ namespace VoxelTest2
 
             if (!IsFocused) // Check to see if the window is focused
             {
-
                 return;
             }
 
@@ -179,7 +167,10 @@ namespace VoxelTest2
                 _camera.Yaw += deltaX * sensitivity;
                 _camera.Pitch -= deltaY * sensitivity; // Reversed since y-coordinates range from bottom to top
             }
+
+            _movementSystem.Update((float)e.Time);
         }
+
         protected override void OnMouseDown(MouseButtonEventArgs e)
         {
             base.OnMouseDown(e);
@@ -224,49 +215,6 @@ namespace VoxelTest2
             // Implement block highlighting logic here
             // For example, change the block color or add a visual indicator
             Console.WriteLine($"Highlighting block at {position}");
-        }
-        public void UploadToGPU(List<Vertex> vertices, List<uint> indices)
-        {
-            // Delete previous buffers if they exist
-            Dispose();
-
-            // Create vertex array
-            _vertexArrayObject = GL.GenVertexArray();
-            GL.BindVertexArray(_vertexArrayObject);
-
-            // Create and upload vertex buffer
-            _vertexBufferObject = GL.GenBuffer(); // Corrected line
-            GL.BindBuffer(BufferTarget.ArrayBuffer, _vertexBufferObject);
-            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Count * Vertex.SizeInBytes,
-                         vertices.ToArray(), BufferUsageHint.StaticDraw);
-
-
-
-            // Create and upload element buffer
-            elementCount = indices.Count;
-            _elementBufferObject = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, _elementBufferObject);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, elementCount * sizeof(uint),
-                         indices.ToArray(), BufferUsageHint.StaticDraw);
-
-            // Set vertex attributes
-            GL.EnableVertexAttribArray(0); // Position
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false,
-                                 Vertex.SizeInBytes, 0);
-
-            GL.EnableVertexAttribArray(1); // Normal
-            GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false,
-                                 Vertex.SizeInBytes, 3 * sizeof(float));
-
-            GL.EnableVertexAttribArray(2); // Color
-            GL.VertexAttribPointer(2, 4, VertexAttribPointerType.Float, false,
-                                 Vertex.SizeInBytes, 6 * sizeof(float));
-
-            GL.BindVertexArray(0);
-        }
-        public void initializeShaders()
-        {
-            _shader = new Shader("shading/shaders/shader.vert", "shading/shaders/shader.frag");
         }
     }
 }
